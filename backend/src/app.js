@@ -81,15 +81,15 @@ function createApp() {
     legacyHeaders: false
   });
 
-  app.use("/api/auth", authLimiter, authRoutes);
-  app.use("/api/me", meRoutes);
-  app.use("/api/listings", listingsRoutes);
-  app.use("/api/threads", threadsRoutes);
-  app.use("/api/wishlist", wishlistRoutes);
-  app.use("/api/offers", offersRoutes);
-  app.use("/api/payments", paymentsRoutes);
-  app.use("/api/ai", aiRoutes);
-  app.use("/api/admin", adminRoutes);
+  app.use(["/api/auth", "/auth"], authLimiter, authRoutes);
+  app.use(["/api/me", "/me"], meRoutes);
+  app.use(["/api/listings", "/listings"], listingsRoutes);
+  app.use(["/api/threads", "/threads"], threadsRoutes);
+  app.use(["/api/wishlist", "/wishlist"], wishlistRoutes);
+  app.use(["/api/offers", "/offers"], offersRoutes);
+  app.use(["/api/payments", "/payments"], paymentsRoutes);
+  app.use(["/api/ai", "/ai"], aiRoutes);
+  app.use(["/api/admin", "/admin"], adminRoutes);
 
   app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
