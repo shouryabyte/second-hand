@@ -1,40 +1,23 @@
 {
-    "functions":  {
-                      "api/**/*.js":  {
-                                          "maxDuration":  30
-                                      }
-                  },
-    "rewrites":  [
-                     {
-                         "source":  "/",
-                         "destination":  "/api/health"
-                     },
-                     {
-                         "source":  "/health",
-                         "destination":  "/api/health"
-                     }
-                 ],
-    "headers":  [
-                    {
-                        "headers":  [
-                                        {
-                                            "key":  "Access-Control-Allow-Origin",
-                                            "value":  "*"
-                                        },
-                                        {
-                                            "key":  "Access-Control-Allow-Methods",
-                                            "value":  "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-                                        },
-                                        {
-                                            "key":  "Access-Control-Allow-Headers",
-                                            "value":  "Content-Type,Authorization"
-                                        },
-                                        {
-                                            "key":  "Access-Control-Max-Age",
-                                            "value":  "86400"
-                                        }
-                                    ],
-                        "source":  "/api/(.*)"
-                    }
-                ]
+  "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" },
+        { "key": "Access-Control-Max-Age", "value": "86400" }
+      ]
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/(.*)", "dest": "/api/index.js" }
+  ]
 }
