@@ -1,6 +1,7 @@
 import { getToken } from "./auth";
 
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const apiOrigin = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ? "" : apiOrigin;
 
 type ApiError = {
   error?: string;
@@ -58,11 +59,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return data as T;
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      throw new Error(`Request timed out. Check NEXT_PUBLIC_API_BASE_URL (${baseUrl}).`);
+      throw new Error(`Request timed out. Check NEXT_PUBLIC_API_BASE_URL (${apiOrigin}).`);
     }
     if (err instanceof TypeError) {
       throw new Error(
-        `Backend not reachable. Check NEXT_PUBLIC_API_BASE_URL (${baseUrl}) and ensure the backend is running.`
+        `Backend not reachable. Check NEXT_PUBLIC_API_BASE_URL (${apiOrigin}) and ensure the backend is running.`
       );
     }
     throw err;
