@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,7 +55,7 @@ function NavLink({
 }
 
 export function NavBar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [token, setToken] = useState<string | null>(null);
   const [me, setMe] = useState<Awaited<ReturnType<typeof api.me>> | null>(null);
 
