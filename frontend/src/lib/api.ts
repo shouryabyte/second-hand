@@ -1,6 +1,6 @@
 import { getToken } from "./auth";
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const apiOrigin = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000").replace(/\/$/, "").replace(/\/api$/, "");
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ? "" : apiOrigin;
 
 type ApiError = {

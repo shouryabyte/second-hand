@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 function getApiOrigin() {
   const raw = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "";
-  return raw.replace(/\/$/, "");
+  return raw.replace(/\/$/, "").replace(/\/api$/, "");
 }
 
 function stripHopByHop(headers: NextApiRequest["headers"]) {
