@@ -8,6 +8,7 @@ const { registerSchema, loginSchema, requestOtpSchema, verifyOtpSchema } = requi
 
 const router = express.Router();
 
+router.get("/ping", (req, res) => res.json({ ok: true }));
 function isAdminEmail(email) {
   const list = (process.env.ADMIN_EMAILS || "")
     .split(",")
