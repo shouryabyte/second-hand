@@ -1,10 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { LogIn, Phone, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,56 +24,66 @@ export default function LoginPage() {
     try {
       const res = await api.login({ email, password });
       setToken(res.token);
-      router.push("/profile");
+      toast.success("Welcome back");
+      router.push("/listings");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : "Login failed";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="grid">
-      <div className="col12">
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-2xl">
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xl font-semibold tracking-tight text-white">Login</div>
+            <div className="mt-1 text-sm text-slate-300/80">Sign in to save items, chat, and buy securely.</div>
+          </div>
+          <Link href="/auth/register" className="btn-secondary">
+            <UserPlus className="h-4 w-4" />
+            Create account
+          </Link>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <div style={{ fontWeight: 950, fontSize: 20 }}>Login</div>
-              <div className="help">Email/password login for the demo.</div>
+              <label className="label">Email</label>
+              <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
             </div>
-            <Link href="/auth/register" className="pill">
-              Create account
+            <div>
+              <label className="label">Password</label>
+              <input
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button loading={busy} leftIcon={<LogIn className="h-4 w-4" />}>
+              Login
+            </Button>
+            <Link className="btn-secondary" href="/auth/phone">
+              <Phone className="h-4 w-4" />
+              Use phone OTP
+            </Link>
+            <Link className="btn-ghost" href="/listings">
+              Continue as guest
             </Link>
           </div>
 
-          <form onSubmit={onSubmit} style={{ marginTop: 12 }}>
-            <div className="grid">
-              <div className="col6">
-                <label>Email</label>
-                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              </div>
-              <div className="col6">
-                <label>Password</label>
-                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" />
-              </div>
-            </div>
-
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button className="btn" disabled={busy}>
-                {busy ? "Signing in..." : "Login"}
-              </button>
-              <Link className="btn btnSecondary" href="/auth/phone">
-                Use phone OTP
-              </Link>
-              <Link className="btn btnSecondary" href="/listings">
-                Continue as guest
-              </Link>
-            </div>
-
-            {error ? <div className="error">{error}</div> : null}
-          </form>
-        </div>
-      </div>
+          {error ? <div className="error">{error}</div> : null}
+        </form>
+      </Card>
     </div>
   );
 }

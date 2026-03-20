@@ -34,6 +34,9 @@ const ListingSchema = new mongoose.Schema(
     },
     locationText: { type: String, default: "", index: true },
     images: { type: [ListingImageSchema], default: [] },
+    allowOffers: { type: Boolean, default: true, index: true },
+    isSuspicious: { type: Boolean, default: false, index: true },
+    fraudReasons: { type: [String], default: [] },
     status: { type: String, enum: ["active", "sold", "removed"], default: "active", index: true }
   },
   { timestamps: true }

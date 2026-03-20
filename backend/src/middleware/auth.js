@@ -1,4 +1,4 @@
-const { verifyAccessToken } = require("../utils/jwt");
+﻿const { verifyAccessToken } = require("../utils/jwt");
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
@@ -15,5 +15,10 @@ function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+  if (req.user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  return next();
+}
 
+module.exports = { requireAuth, requireAdmin };

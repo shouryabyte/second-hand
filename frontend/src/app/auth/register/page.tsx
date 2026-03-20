@@ -1,10 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { Phone, UserPlus, LogIn } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,64 +31,80 @@ export default function RegisterPage() {
         phone: phone.trim() || undefined
       });
       setToken(res.token);
-      router.push("/profile");
+      toast.success("Account created");
+      router.push("/listings");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="grid">
-      <div className="col12">
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-2xl">
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xl font-semibold tracking-tight text-white">Create account</div>
+            <div className="mt-1 text-sm text-slate-300/80">Join to save items, message sellers, and build trust.</div>
+          </div>
+          <Link href="/auth/login" className="btn-secondary">
+            <LogIn className="h-4 w-4" />
+            Login
+          </Link>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <div style={{ fontWeight: 950, fontSize: 20 }}>Create account</div>
-              <div className="help">Use email/password now. Phone OTP is available too.</div>
+              <label className="label">Display name</label>
+              <input
+                className="input"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. Prabhakar"
+                required
+              />
             </div>
-            <Link href="/auth/login" className="pill">
-              Login
+            <div>
+              <label className="label">Password</label>
+              <input
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="Min 8 chars"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Email (optional)</label>
+              <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+            </div>
+            <div>
+              <label className="label">Phone (optional)</label>
+              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9xxxx xxxxx" />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button loading={busy} leftIcon={<UserPlus className="h-4 w-4" />}>
+              Create account
+            </Button>
+            <Link className="btn-secondary" href="/auth/phone">
+              <Phone className="h-4 w-4" />
+              Use phone OTP
+            </Link>
+            <Link className="btn-ghost" href="/listings">
+              Continue as guest
             </Link>
           </div>
 
-          <form onSubmit={onSubmit} style={{ marginTop: 12 }}>
-            <div className="grid">
-              <div className="col6">
-                <label>Display name</label>
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="e.g. Prabhakar" />
-              </div>
-              <div className="col6">
-                <label>Password</label>
-                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Min 8 chars" />
-              </div>
-              <div className="col6">
-                <label>Email (optional)</label>
-                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              </div>
-              <div className="col6">
-                <label>Phone (optional)</label>
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9xxxx xxxxx" />
-              </div>
-            </div>
-
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button className="btn" disabled={busy}>
-                {busy ? "Creating..." : "Create account"}
-              </button>
-              <Link className="btn btnSecondary" href="/auth/phone">
-                Use phone OTP
-              </Link>
-              <Link className="btn btnSecondary" href="/listings">
-                Continue as guest
-              </Link>
-            </div>
-
-            {error ? <div className="error">{error}</div> : null}
-          </form>
-        </div>
-      </div>
+          {error ? <div className="error">{error}</div> : null}
+        </form>
+      </Card>
     </div>
   );
 }

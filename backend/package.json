@@ -1,4 +1,4 @@
-﻿{
+{
     "name":  "sh-marketplace-backend",
     "version":  "0.1.0",
     "private":  true,
@@ -19,9 +19,17 @@
                          "zod":  "^3.23.8",
                          "multer":  "^2.0.0",
                          "cloudinary":  "^2.6.0",
-                         "streamifier":  "^0.1.1"
+                         "streamifier":  "^0.1.1",
+                         "razorpay":  "^2.9.5",
+                         "helmet":  "^7.1.0",
+                         "express-rate-limit":  "^7.4.1",
+                         "undici":  "^6.21.1",
+                         "express-async-errors":  "^3.1.1"
                      },
     "devDependencies":  {
                             "nodemon":  "^3.1.4"
-                        }
+                        },
+    "engines":  {
+                    "node":  "\u003e=18"
+                }
 }

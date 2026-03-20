@@ -1,9 +1,16 @@
 ﻿# Database Schema (MongoDB)
 
-This is the **Days 1–3 database design** for the prototype.
+This is the database design for the prototype.
 
-- Implemented: `users`, `listings`
-- Planned next: `messages`, `wishlists`, `transactions`
+Implemented:
+- `users`
+- `listings`
+- `threads`
+- `messages`
+- `wishlists`
+
+Planned:
+- `transactions`
 
 ## `users`
 
@@ -12,18 +19,13 @@ Represents buyers/sellers.
 - `_id`: ObjectId
 - `email`: string (unique, optional if phone-only)
 - `phone`: string (unique, optional if email-only)
-- `passwordHash`: string (nullable for OTP-only / social auth)
+- `passwordHash`: string (nullable for OTP-only)
 - `displayName`: string
-- `photoUrl`: string (optional)
-- `role`: `"user" | "admin"` (default `"user"`)
-- `isVerifiedSeller`: boolean (default `false`)
-- `ratingAvg`: number (default `0`)
-- `ratingCount`: number (default `0`)
+- `role`: `"user" | "admin"`
+- `isVerifiedSeller`: boolean
+- `ratingAvg`: number
+- `ratingCount`: number
 - `createdAt`, `updatedAt`: Date
-
-Indexes:
-- unique `email` (sparse)
-- unique `phone` (sparse)
 
 ## `listings`
 
@@ -32,37 +34,43 @@ Indexes:
 - `title`: string
 - `description`: string
 - `price`: number
-- `currency`: string (e.g. `"INR"`)
-- `category`: string (enum: Electronics, Furniture, Books, Vehicles, Clothes, Gadgets, Appliances, Other)
+- `currency`: string
+- `category`: string
 - `condition`: `"new" | "like_new" | "used"`
 - `location`: `{ city, state, country, lat, lng }`
-- `locationText`: string (lowercased, derived for filtering)
+- `locationText`: string (derived)
 - `images`: array of `{ url, publicId, originalName, mimeType, size }`
 - `status`: `"active" | "sold" | "removed"`
 - `createdAt`, `updatedAt`: Date
 
-Indexes:
-- text index on `title`, `description`
-- compound index for `category`, `price`, `status`, `createdAt`
+## `threads`
 
-## `messages` (planned)
+Conversation container (per listing + buyer/seller pair).
 
 - `_id`: ObjectId
-- `threadId`: ObjectId
-- `fromUserId`: ObjectId
-- `toUserId`: ObjectId
-- `listingId`: ObjectId (optional)
-- `type`: `"text" | "voice"`
-- `text`: string (optional)
-- `voiceUrl`: string (optional)
-- `isSpam`: boolean (default `false`)
-- `createdAt`: Date
+- `listingId`: ObjectId (ref `listings`)
+- `participants`: ObjectId[] (exactly 2; refs `users`)
+- `participantsKey`: string (sorted user ids)
+- `listingKey`: string
+- `lastMessageAt`: Date
+- `lastMessageText`: string
+- `createdAt`, `updatedAt`: Date
 
-## `wishlists` (planned)
+## `messages`
 
 - `_id`: ObjectId
-- `userId`: ObjectId
-- `listingIds`: ObjectId[]
+- `threadId`: ObjectId (ref `threads`)
+- `fromUserId`: ObjectId (ref `users`)
+- `type`: `"text"`
+- `text`: string
+- `isSpam`: boolean
+- `createdAt`, `updatedAt`: Date
+
+## `wishlists`
+
+- `_id`: ObjectId
+- `userId`: ObjectId (ref `users`, unique)
+- `listingIds`: ObjectId[] (refs `listings`)
 - `createdAt`, `updatedAt`: Date
 
 ## `transactions` (planned)
@@ -75,4 +83,3 @@ Indexes:
 - `paymentProvider`: `"upi" | "card" | "cash"`
 - `status`: `"created" | "escrowed" | "released" | "disputed" | "refunded"`
 - `createdAt`, `updatedAt`: Date
-

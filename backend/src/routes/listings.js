@@ -1,18 +1,12 @@
-﻿const express = require("express");
+const express = require("express");
 const multer = require("multer");
-const crypto = require("crypto");
-const streamifier = require("streamifier");
 
 const Listing = require("../models/Listing");
 const { requireAuth } = require("../middleware/auth");
 const { createListingSchema, listQuerySchema } = require("../validators/listings");
-const { cloudinary, isCloudinaryConfigured } = require("../config/cloudinary");
+const { uploadImage, getUploadProvider } = require("../services/upload.service");
 
 const router = express.Router();
-
-function randomId() {
-  return crypto.randomBytes(8).toString("hex");
-}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,48 +16,34 @@ const upload = multer({
   }
 });
 
-function uploadImageToCloudinary(file) {
-  return new Promise((resolve, reject) => {
-    const folder = process.env.CLOUDINARY_FOLDER || "sh-marketplace";
-    const publicId = `${Date.now()}-${randomId()}`;
-
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        public_id: publicId,
-        resource_type: "image"
-      },
-      (err, result) => {
-        if (err) return reject(err);
-        return resolve(result);
-      }
-    );
-
-    streamifier.createReadStream(file.buffer).pipe(stream);
-  });
+function assessFraudRisk({ title, description, price }) {
+  const reasons = [];
+  const text = `${title} ${description}`.toLowerCase();
+  const urlCount = (text.match(/https?:\/\//g) || []).length;
+  if (urlCount >= 1) reasons.push("contains_link");
+  if (price <= 0) reasons.push("zero_price");
+  if (/(free|giveaway|urgent)/.test(text) && price < 200) reasons.push("suspicious_terms");
+  return reasons;
 }
 
 router.post("/", requireAuth, upload.array("images", 6), async (req, res) => {
-  if (!isCloudinaryConfigured()) {
-    return res.status(500).json({ error: "Cloudinary is not configured" });
-  }
-
   const parsed = createListingSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+    return res.status(400).json({ error: "Invalid input", fields: parsed.error.flatten().fieldErrors, formErrors: parsed.error.flatten().formErrors });
   }
 
-  const files = Array.isArray(req.files) ? req.files : [];
-  const uploads = await Promise.all(files.map((f) => uploadImageToCloudinary(f)));
-  const images = uploads.map((u, idx) => ({
-    url: u.secure_url || u.url,
-    publicId: u.public_id,
-    originalName: files[idx] && files[idx].originalname ? files[idx].originalname : null,
-    mimeType: files[idx].mimetype,
-    size: files[idx].size
-  }));
-
   const data = parsed.data;
+  const files = Array.isArray(req.files) ? req.files : [];
+
+  let images = [];
+  try {
+    images = await Promise.all(files.map((f) => uploadImage(req, f)));
+  } catch (err) {
+    return res.status(500).json({ error: String(err && err.message ? err.message : err) });
+  }
+
+  const fraudReasons = assessFraudRisk({ title: data.title, description: data.description, price: data.price });
+
   const listing = await Listing.create({
     sellerId: req.user.sub,
     title: data.title,
@@ -72,6 +52,9 @@ router.post("/", requireAuth, upload.array("images", 6), async (req, res) => {
     currency: data.currency || "INR",
     category: data.category,
     condition: data.condition || "used",
+    allowOffers: true,
+    isSuspicious: fraudReasons.length > 0,
+    fraudReasons,
     location: {
       city: data.city || null,
       state: data.state || null,
@@ -82,7 +65,7 @@ router.post("/", requireAuth, upload.array("images", 6), async (req, res) => {
     images
   });
 
-  return res.status(201).json({ id: String(listing._id) });
+  return res.status(201).json({ id: String(listing._id), uploadProvider: getUploadProvider() });
 });
 
 router.get("/", async (req, res) => {
@@ -179,6 +162,7 @@ router.get("/:id", async (req, res) => {
     condition: listing.condition,
     location: listing.location,
     images: listing.images || [],
+    allowOffers: listing.allowOffers,
     createdAt: listing.createdAt,
     seller: listing.sellerId
       ? {
@@ -191,6 +175,34 @@ router.get("/:id", async (req, res) => {
           ratingCount: listing.sellerId.ratingCount
         }
       : null
+  });
+});
+
+router.get("/:id/similar", async (req, res) => {
+  const listing = await Listing.findById(req.params.id).select("category title status").lean();
+  if (!listing || listing.status !== "active") return res.status(404).json({ error: "Not found" });
+
+  const items = await Listing.find({
+    _id: { $ne: listing._id },
+    status: "active",
+    category: listing.category
+  })
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .lean();
+
+  return res.json({
+    items: items.map((it) => ({
+      id: String(it._id),
+      title: it.title,
+      price: it.price,
+      currency: it.currency,
+      category: it.category,
+      condition: it.condition,
+      location: it.location,
+      image: it.images && it.images[0] ? it.images[0].url : null,
+      createdAt: it.createdAt
+    }))
   });
 });
 

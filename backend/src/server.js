@@ -1,9 +1,14 @@
 ﻿require("dotenv").config();
 
+const fs = require("fs");
+const path = require("path");
+
 const { createApp } = require("./app");
 const { connectDb } = require("./config/db");
 
 async function main() {
+  fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
+
   await connectDb(process.env.MONGODB_URI);
   const app = createApp();
 
