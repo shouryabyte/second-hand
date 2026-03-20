@@ -95,4 +95,42 @@ function createApp() {
   return app;
 }
 
-module.exports = { createApp };
+const { connectDb } = require("./config/db");
+
+let cachedApp;
+let dbPromise;
+
+// Vercel/Serverless compatibility: some deployments may try to execute `src/app.js` as the entry.
+// Export a handler function (and keep `createApp` available for local `server.js` and tests).
+async function handler(req, res) {
+  try {
+    const url = String(req?.url || "");
+    const isHealth =
+      url === "/" ||
+      url.startsWith("/?") ||
+      url === "/health" ||
+      url.startsWith("/health?") ||
+      url === "/api/health" ||
+      url.startsWith("/api/health?");
+
+    if (!isHealth) {
+      if (!dbPromise) {
+        dbPromise = connectDb(process.env.MONGODB_URI);
+      }
+      await dbPromise;
+    }
+
+    if (!cachedApp) cachedApp = createApp();
+    return cachedApp(req, res);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+
+    const isProd = process.env.NODE_ENV === "production";
+    return res.status(500).json({ error: isProd ? "Server error" : String(err?.message || err || "Server error") });
+  }
+}
+
+handler.createApp = createApp;
+module.exports = handler;
+module.exports.createApp = createApp;
