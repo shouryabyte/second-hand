@@ -1,6 +1,5 @@
 const express = require("express");
 require("express-async-errors");
-const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -15,12 +14,34 @@ const paymentsRoutes = require("./routes/payments");
 const aiRoutes = require("./routes/ai");
 const adminRoutes = require("./routes/admin");
 
+function applyCorsHeaders(req, res) {
+  const origin = req?.headers?.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  res.setHeader("Access-Control-Max-Age", "86400");
+}
+
 function createApp() {
   const app = express();
 
   // Production Upgrade: respect proxy headers on Vercel (needed for rate limiting + protocol)
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
+
+  // CORS: must run before any middleware that may reject requests (rate limit, auth, etc.)
+  // We do NOT use cookies; auth is via Authorization header, so credentials stay disabled.
+  app.use((req, res, next) => {
+    applyCorsHeaders(req, res);
+    if (req.method === "OPTIONS") return res.status(204).end();
+    return next();
+  });
 
   // Production Upgrade: security headers (API-friendly defaults)
   app.use(
@@ -38,24 +59,6 @@ function createApp() {
     legacyHeaders: false
   });
   app.use(globalLimiter);
-  // CORS: fully manual to avoid any runtime/preset quirks on Vercel.
-  // We do NOT use cookies; auth is via Authorization header, so credentials stay disabled.
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Vary", "Origin");
-    } else {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
-
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-    res.setHeader("Access-Control-Max-Age", "86400");
-
-    if (req.method === "OPTIONS") return res.status(204).end();
-    return next();
-  });
 
   app.use(express.json({ limit: "5mb" }));
 
@@ -112,6 +115,9 @@ let dbPromise;
 // Export a handler function (and keep `createApp` available for local `server.js` and tests).
 async function handler(req, res) {
   try {
+    applyCorsHeaders(req, res);
+    if (req?.method === "OPTIONS") return res.status(204).end();
+
     const url = String(req?.url || "");
     const isHealth =
       url === "/" ||
@@ -121,7 +127,9 @@ async function handler(req, res) {
       url === "/api/health" ||
       url.startsWith("/api/health?");
 
-    if (!isHealth) {
+    const isTrivialAsset = url === "/favicon.ico" || url === "/favicon.png";
+
+    if (!isHealth && !isTrivialAsset) {
       if (!dbPromise) {
         dbPromise = connectDb(process.env.MONGODB_URI);
       }
