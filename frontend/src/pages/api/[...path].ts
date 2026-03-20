@@ -16,6 +16,18 @@ function stripHopByHop(headers: NextApiRequest["headers"]) {
   return out;
 }
 
+async function readBody(req: NextApiRequest): Promise<Buffer | undefined> {
+  const method = (req.method || "GET").toUpperCase();
+  if (method === "GET" || method === "HEAD") return undefined;
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (!chunks.length) return undefined;
+  return Buffer.concat(chunks);
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const apiOrigin = getApiOrigin();
   if (!apiOrigin) {
@@ -28,10 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const qs = qsIndex >= 0 ? (req.url || "").slice(qsIndex) : "";
   const targetUrl = `${apiOrigin}/api/${rest}${qs}`;
 
+  const body = await readBody(req);
   const upstream = await fetch(targetUrl, {
     method: req.method,
     headers: stripHopByHop(req.headers),
-    body: req.method && ["GET", "HEAD"].includes(req.method.toUpperCase()) ? undefined : (req as any)
+    body: body ? new Uint8Array(body) : undefined
   });
 
   res.status(upstream.status);
