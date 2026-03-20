@@ -91,10 +91,18 @@ function createApp() {
 
   app.use(express.json({ limit: "5mb" }));
   // CORS fast-path for health checks (so the frontend can detect backend status even if CORS is misconfigured)
+  // NOTE: We reflect the Origin when present (required when credentials are enabled).
   app.use((req, res, next) => {
     const p = req.path;
     if (p === "/" || p === "/health" || p === "/api/health") {
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+      } else {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      }
+      res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
       if (req.method === "OPTIONS") return res.status(204).end();
