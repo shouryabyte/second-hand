@@ -29,6 +29,20 @@ function applyCors(req, res) {
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
+function normalizeUrl(url) {
+  const u = String(url || "");
+  if (!u.startsWith("/")) return "/" + u;
+  if (u === "/" || u.startsWith("/?")) return u;
+  if (u === "/health" || u.startsWith("/health?")) return u;
+  if (u.startsWith("/uploads")) return u;
+
+  // IMPORTANT:
+  // Vercel can invoke this function with req.url either including `/api/...` or stripped to `/<path>`.
+  // Make Express always see `/api/...` so mounted routes match reliably.
+  if (u.startsWith("/api/")) return u;
+  return "/api" + u;
+}
+
 function isHealthRequest(req) {
   const url = String(req?.url || "");
   return (
@@ -43,6 +57,9 @@ function isHealthRequest(req) {
 
 module.exports = async (req, res) => {
   try {
+    // Normalize first so downstream middleware sees consistent paths.
+    req.url = normalizeUrl(req.url);
+
     applyCors(req, res);
     if (req?.method === "OPTIONS") return res.status(204).end();
 
