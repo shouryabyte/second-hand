@@ -47,12 +47,34 @@ function createApp() {
         .filter(Boolean)
     : null;
 
-  function matchOrigin(pattern, origin) {
-    if (pattern === "*") return true;
-    if (!pattern.includes("*")) return pattern === origin;
+  function toHostname(origin) {
+    try {
+      return new URL(origin).hostname;
+    } catch {
+      return null;
+    }
+  }
 
+  function wildcardToRegExp(pattern) {
     const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
-    return new RegExp(`^${escaped}$`).test(origin);
+    return new RegExp(`^${escaped}$`);
+  }
+
+  function matchOrigin(pattern, origin) {
+    if (!pattern) return false;
+    if (pattern === "*") return true;
+
+    const isUrlPattern = pattern.includes("://");
+    if (isUrlPattern) {
+      if (!pattern.includes("*")) return pattern === origin;
+      return wildcardToRegExp(pattern).test(origin);
+    }
+
+    // Allow hostname-only patterns too (common env var mistake)
+    const host = toHostname(origin);
+    if (!host) return false;
+    if (!pattern.includes("*")) return pattern === host;
+    return wildcardToRegExp(pattern).test(host);
   }
 
   app.use(
@@ -68,6 +90,17 @@ function createApp() {
   );
 
   app.use(express.json({ limit: "5mb" }));
+  // CORS fast-path for health checks (so the frontend can detect backend status even if CORS is misconfigured)
+  app.use((req, res, next) => {
+    const p = req.path;
+    if (p === "/" || p === "/health" || p === "/api/health") {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+      if (req.method === "OPTIONS") return res.status(204).end();
+    }
+    return next();
+  });
 
   // Root route: handy for quick checks in the browser.
   app.get("/", (req, res) => res.json({ ok: true, service: "sh-marketplace-api" }));
