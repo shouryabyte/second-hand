@@ -39,15 +39,38 @@ function createApp() {
   });
   app.use(globalLimiter);
 
+    const allowedOriginsRaw = process.env.CORS_ORIGIN;
+  const allowedOrigins = allowedOriginsRaw
+    ? allowedOriginsRaw
+        .split(",")
+        .map((x) => String(x).trim())
+        .filter(Boolean)
+    : null;
+
+  function matchOrigin(pattern, origin) {
+    if (pattern === "*") return true;
+    if (!pattern.includes("*")) return pattern === origin;
+
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
+    return new RegExp(`^${escaped}$`).test(origin);
+  }
+
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
+      origin: (origin, cb) => {
+        if (!allowedOrigins) return cb(null, true);
+        if (!origin) return cb(null, true);
+        const ok = allowedOrigins.some((p) => matchOrigin(p, origin));
+        return cb(null, ok);
+      },
       credentials: true
     })
   );
 
   app.use(express.json({ limit: "5mb" }));
 
+  // Root route: handy for quick checks in the browser.
+  app.get("/", (req, res) => res.json({ ok: true, service: "sh-marketplace-api" }));
   // Lightweight health check (does not require DB)
   app.get("/health", (req, res) => res.json({ ok: true }));
 

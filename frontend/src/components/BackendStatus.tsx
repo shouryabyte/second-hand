@@ -10,7 +10,7 @@ export function BackendStatus() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 1500);
+    const t = setTimeout(() => controller.abort(), 5000);
 
     fetch(`${baseUrl}/api/health`, { signal: controller.signal })
       .then((r) => setOffline(!r.ok))

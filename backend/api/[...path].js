@@ -16,7 +16,7 @@ let dbPromise;
 
 function isHealthRequest(req) {
   const url = String(req?.url || "");
-  return url === "/health" || url.startsWith("/health?") || url === "/api/health" || url.startsWith("/api/health?");
+  return url === "/" || url.startsWith("/?") || url === "/health" || url.startsWith("/health?") || url === "/api/health" || url.startsWith("/api/health?");
 }
 
 module.exports = async (req, res) => {
